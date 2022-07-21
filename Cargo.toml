@@ -5,5 +5,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "3.2.8", features = ["derive"] }
-parse-size = "1.0.0"
+bytesize = "1.1.0"
 cgroups-rs = { git = "https://github.com/kata-containers/cgroups-rs" }
+shell-words = "1.0"
+colored = "2.0"
