@@ -28,7 +28,7 @@ fn main() {
     let restrict = restrict_from_cli(matches);
 
     match restrict.run() {
-        Ok(status) => exit(status),
+        Ok(status) => exit(status.code().unwrap()),
         Err(err) => eprintln!("Error: {}", err),
     }
 }

@@ -1,14 +1,16 @@
-use std::process::{Command, exit, id};
-use std::os::unix::process::CommandExt;
-use std::io::{self, Write};
+use std::{ 
+    process::{Child, Command, exit, id, Stdio, ExitStatus},
+    os::unix::process::CommandExt,
+};
 
 use colored::*;
 use bytesize::ByteSize;
 
-use cgroups_rs::*;
-use cgroups_rs::memory::{MemController, SetMemory};
-use cgroups_rs::cpu::CpuController;
-use cgroups_rs::{Cgroup, MaxValue};
+use cgroups_rs::{
+    {Cgroup, MaxValue, CgroupPid},
+    memory::{MemController, SetMemory},
+    cpu::CpuController,
+};
 
 pub struct Restrict {
     debug: bool,
@@ -51,11 +53,11 @@ impl Restrict {
     gen!(with_memory_limit,memory_limit,Option<ByteSize>);
     gen!(with_cpu_limit,cpu_shares,Option<u64>);
 
-    pub fn run(self) -> Result<i32, String> {
+    pub fn run(self) -> Result<ExitStatus, String> {
         let h = cgroups_rs::hierarchies::auto();
         if !h.v2() {
             eprintln!("needs cgroups v2");
-            return Err("needs cgroups v2".to_string()); 
+           return Err("needs cgroups v2".to_string()); 
         }
 
         let cg = Cgroup::new(h, "restrict");
@@ -88,39 +90,38 @@ impl Restrict {
         if self.debug {
             self.print_restrict_info();
         }
-
+    
+        let mut child:Child;
 
         unsafe {
-            let result = Command::new(self.shell)
+            child = Command::new(self.shell)
+                .stdout(Stdio::inherit())
+                .stdin(Stdio::inherit())
+                .stderr(Stdio::inherit())
                 .arg("-c")
                 .arg(self.command)
                 .pre_exec(move || {
                     Self::add_pid_to_cgroup(&cg, id());
                     Ok(())
                 })
-                .output();
-
-            match result {
-                Ok(output) => {
-                    io::stdout().write_all(&output.stdout).unwrap();
-                    io::stderr().write_all(&output.stderr).unwrap();
-
-                    if let Some(status) = output.status.code() {
-                        if self.debug {
-                            println!("command exited with status {}", status);
-                        }
-
-                        return Ok(status);
-                    }
-                }
-                Err(err) => {
-                    eprintln!("failed executing command: {}", err);
-                    return Err(err.to_string())
-                },
-            }
+                .spawn()
+                .expect("process failed");
         }
 
-        unreachable!()
+        match child.wait() {
+            Ok(status) => {
+                if self.debug {
+                    if status.success() {
+                        println!("command exited with status {}", status);
+                    } else {
+                        eprintln!("{}", format!("{}", status).red());
+                    }
+                }
+
+                Ok(status)
+            },
+            Err(err) => Err(err.to_string())
+        }
     }
 
     fn print_restrict_info(&self) {
