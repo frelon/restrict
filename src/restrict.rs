@@ -101,7 +101,7 @@ impl Restrict {
                 .arg("-c")
                 .arg(self.command)
                 .pre_exec(move || {
-                    Self::add_pid_to_cgroup(&cg, id());
+                    Self::add_pid_to_cgroup(&cg, id().into());
                     Ok(())
                 })
                 .spawn()
@@ -138,8 +138,8 @@ impl Restrict {
         }
     }
 
-    fn add_pid_to_cgroup(cgroup:&Cgroup, pid:u32) {
-        match cgroup.add_task(CgroupPid::from(pid as u64)) {
+    fn add_pid_to_cgroup(cgroup:&Cgroup, pid:u64) {
+        match cgroup.add_task(CgroupPid::from(pid)) {
             Ok(()) => {},
             Err(err) => eprintln!("failed adding task to cgroup: {}", err),
         }
