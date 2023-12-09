@@ -64,6 +64,12 @@ impl Restrict {
         }
 
         let cg = Cgroup::new(h, self.cgroup_path.clone()).unwrap();
+        let cg2 = cg.clone();
+        defer! {
+            if let Err(err) = cg2.delete() {
+                eprintln!("failed deleting cgroup: {}", err.to_string().red());
+            }
+        }
 
         if let Some(memory_limit) = self.memory_limit {
             let mem_controller: &MemController = cg.controller_of().unwrap();

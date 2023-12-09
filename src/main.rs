@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate clap;
 
+#[macro_use(defer)]
+extern crate scopeguard;
+
 use std::{
     str::FromStr,
     process::{exit, id},
