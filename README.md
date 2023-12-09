@@ -10,6 +10,7 @@ restrictions.
 $ cargo build --release
 $ sudo ./target/release/restrict -d -m 100M -c 10 -- 'echo test1 && sleep 1 && echo test2'
 run command /bin/bash -c 'echo test1 && sleep 1 && echo test2'
+        cgroup restrict-7415
         cpu    restricted to  10 shares
         memory restricted to  100.0 MB
 test1

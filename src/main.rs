@@ -3,7 +3,7 @@ extern crate clap;
 
 use std::{
     str::FromStr,
-    process::exit,
+    process::{exit, id},
     env,
 };
 
@@ -19,6 +19,7 @@ fn main() {
         (author: "Fredrik Lönnegren <fredrik@frelon.se>")
         (about: "Restrict a commands resource usage")
         (@arg DEBUG: -d --debug "Print debug information")
+        (@arg CGROUP_PATH: --group ... "cgroup path, can be used to join the same cgroup for multiple invocations")
         (@arg SHELL: -s ... "Set the shell to use for invoking command (defaults to $SHELL)")
         (@arg MEMORY_LIMIT: -m --memory ... "Set memory limit for the command (For example 100M)")
         (@arg CPU_SHARES: -c --cpu ... "Set CPU shares for the command")
@@ -56,11 +57,16 @@ fn restrict_from_cli(matches:ArgMatches) -> Restrict {
              u64::from_str(size).expect("must be an unsigned integer")
         );
 
+    let cgroup_path = matches.value_of("CGROUP_PATH")
+        .map(|path| path.to_string())
+        .unwrap_or(format!("restrict-{}", id()));
+
     Restrict::new()
         .with_shell(shell)
         .with_command(command)
         .with_debug(debug)
         .with_memory_limit(mem)
         .with_cpu_limit(cpu)
+        .with_cgroup_path(cgroup_path)
 }
 

@@ -18,6 +18,7 @@ pub struct Restrict {
     cpu_shares: Option<u64>,
     shell: String,
     command: String,
+    cgroup_path: String,
 }
 
 macro_rules! gen {
@@ -44,6 +45,7 @@ impl Restrict {
             cpu_shares: None,
             shell: "".to_string(),
             command: "".to_string(),
+            cgroup_path: "restrict".to_string(),
         }
     }
 
@@ -52,15 +54,16 @@ impl Restrict {
     gen!(with_debug,debug,bool);
     gen!(with_memory_limit,memory_limit,Option<ByteSize>);
     gen!(with_cpu_limit,cpu_shares,Option<u64>);
+    gen!(with_cgroup_path,cgroup_path,String);
 
     pub fn run(self) -> Result<ExitStatus, String> {
         let h = cgroups_rs::hierarchies::auto();
         if !h.v2() {
-            eprintln!("needs cgroups v2");
+           eprintln!("needs cgroups v2");
            return Err("needs cgroups v2".to_string()); 
         }
 
-        let cg = Cgroup::new(h, "restrict");
+        let cg = Cgroup::new(h, self.cgroup_path.clone()).unwrap();
 
         if let Some(memory_limit) = self.memory_limit {
             let mem_controller: &MemController = cg.controller_of().unwrap();
@@ -126,6 +129,7 @@ impl Restrict {
 
     fn print_restrict_info(&self) {
         println!("run command {}", format!("{} -c '{}'", self.shell, self.command.yellow()).bold());
+        println!("\tcgroup {}", self.cgroup_path.green());
 
         match self.cpu_shares {
             Some(cpu) => println!("\tcpu    {} {} shares", "restricted to ".green(), cpu),
